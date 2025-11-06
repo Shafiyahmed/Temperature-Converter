@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Converter</title>
+    <style>
+        :root{
+            --bg-1: #0f172a;
+            --accent-1: #7c3aed;
+            --accent-2: #06b6d4;
+            --muted: #94a3b8;
+            --card-bg: rgba(255,255,255,0.06);
+            --glass: rgba(255,255,255,0.06);
+            --glass-border: rgba(255,255,255,0.08);
+            --success: #10b981;
+            font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color-scheme: dark;
+        }
+
+        html,body{height:100%;margin:0}
+        body{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:28px;
+            background: radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.12), transparent 8%),
+                        radial-gradient(1000px 500px at 90% 90%, rgba(6,182,212,0.08), transparent 8%),
+                        linear-gradient(180deg,var(--bg-1) 0%, #071020 100%);
+            -webkit-font-smoothing:antialiased;
+            -moz-osx-font-smoothing:grayscale;
+            color:#e6eef8;
+        }
+
+        .card{
+            width:100%;
+            max-width:620px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+            border-radius:14px;
+            padding:22px;
+            box-shadow: 0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(8px) saturate(120%);
+        }
+
+        h1{font-size:20px;margin:0 0 10px;letter-spacing:0.2px}
+        .row{display:flex;gap:14px;align-items:center}
+        label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+
+        input[type=number]{flex:1;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:inherit;font-size:15px;outline: none;transition:box-shadow .18s,transform .08s}
+        input[type=number]:focus{box-shadow:0 6px 20px rgba(124,58,237,0.12);transform:translateY(-1px)}
+
+        select{padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+
+        .controls{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+        button{padding:10px 14px;border-radius:10px;border:0;background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:white;font-weight:600;cursor:pointer;box-shadow:0 8px 20px rgba(7,10,33,0.6);transition:transform .12s,box-shadow .12s}
+        button:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(7,10,33,0.7)}
+        button:active{transform:translateY(-1px)}
+        button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:600;box-shadow:none}
+        button.secondary:hover{background:rgba(255,255,255,0.02);transform:none}
+        .swap-btn{background:linear-gradient(90deg,#06b6d4,#7c3aed)}
+
+        .result{margin-top:16px;padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
+        .muted{font-size:13px;color:var(--muted)}
+        .error{color:#ff6b6b;font-weight:700}
+        .small{font-size:13px}
+
+        #valueOut{font-size:20px;font-weight:700}
+
+        @media (max-width:720px){
+            .row{flex-direction:column;align-items:stretch}
+            .controls{justify-content:stretch}
+            button{flex:1}
+        }
+    </style>
+</head>
+<body>
+    <main class="card" role="main">
+        <h1>Temperature Converter</h1>
+
+        <form id="converter" onsubmit="return false;" aria-labelledby="conv-title">
+            <div class="row" style="margin-bottom:10px">
+                <div style="flex:1">
+                    <label for="value">Value</label>
+                    <input id="value" type="number" step="any" inputmode="decimal" placeholder="Enter temperature" aria-describedby="valueHelp">
+                    <div id="valueHelp" class="muted small">Enter a number; Kelvin values must be ≥ 0.</div>
+                </div>
+                <div>
+                    <label for="from">From</label>
+                    <select id="from" aria-label="From unit">
+                        <option value="C">Celsius (°C)</option>
+                        <option value="F">Fahrenheit (°F)</option>
+                        <option value="K">Kelvin (K)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="to">To</label>
+                    <select id="to" aria-label="To unit">
+                        <option value="C">Celsius (°C)</option>
+                        <option value="F">Fahrenheit (°F)</option>
+                        <option value="K">Kelvin (K)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="convert">Convert</button>
+                <button id="swap" type="button" class="swap-btn" title="Swap units">Swap</button>
+                <button id="clear" type="button" class="secondary">Clear</button>
+                <button id="copy" type="button" class="secondary">Copy</button>
+            </div>
+
+            <div id="output" class="result" aria-live="polite" style="display:none">
+                <div class="small muted" id="formula"></div>
+                <div id="valueOut" style="font-size:20px;font-weight:600"></div>
+                <div id="error" class="error" style="display:none"></div>
+            </div>
+        </form>
+    </main>
+
+    <script>
+        const el = id => document.getElementById(id);
+        const valueEl = el('value');
+        const fromEl = el('from');
+        const toEl = el('to');
+        const convertBtn = el('convert');
+        const swapBtn = el('swap');
+        const clearBtn = el('clear');
+        const copyBtn = el('copy');
+        const output = el('output');
+        const valueOut = el('valueOut');
+        const errorEl = el('error');
+        const formulaEl = el('formula');
+
+        function roundSmart(n){
+            if (!isFinite(n)) return n;
+            if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
+            return String(Number(n.toFixed(4)));
+        }
+
+        function toCelsius(v, from){
+            switch(from){
+                case 'C': return v;
+                case 'F': return (v - 32) * 5/9;
+                case 'K': return v - 273.15;
+            }
+        }
+
+        function fromCelsius(vC, to){
+            switch(to){
+                case 'C': return vC;
+                case 'F': return (vC * 9/5) + 32;
+                case 'K': return vC + 273.15;
+            }
+        }
+
+        function convertValue(input, from, to){
+            const num = Number(input);
+            if (input === '' || Number.isNaN(num)) return {error: 'Please enter a valid number.'};
+
+            if (from === 'K' && num < 0) return {error: 'Kelvin cannot be negative.'};
+            const c = toCelsius(num, from);
+            const out = fromCelsius(c, to);
+
+            if (to === 'K' && out < 0) return {error: 'Resulting Kelvin is negative (invalid).' };
+
+            return {value: out, formula: buildFormula(num, from, out, to)};
+        }
+
+        function buildFormula(input, from, output, to){
+            if (from === to) return `${input} ${unitSymbol(from)} = ${roundSmart(output)} ${unitSymbol(to)} (no conversion)`;
+            return `${input} ${unitSymbol(from)} → ${roundSmart(output)} ${unitSymbol(to)}`;
+        }
+
+        function unitSymbol(u){
+            return u === 'C' ? '°C' : (u === 'F' ? '°F' : 'K');
+        }
+
+        function showResult(res){
+            if (res.error){
+                errorEl.style.display = '';
+                errorEl.textContent = res.error;
+                output.style.display = '';
+                valueOut.textContent = '';
+                formulaEl.textContent = '';
+                return;
+            }
+            errorEl.style.display = 'none';
+            output.style.display = '';
+            valueOut.textContent = `${roundSmart(res.value)} ${unitSymbol(toEl.value)}`;
+            formulaEl.textContent = res.formula || '';
+        }
+
+        function doConvert(){
+            const res = convertValue(valueEl.value.trim(), fromEl.value, toEl.value);
+            showResult(res);
+        }
+
+        convertBtn.addEventListener('click', doConvert);
+        valueEl.addEventListener('input', () => { doConvert(); });
+        fromEl.addEventListener('change', doConvert);
+        toEl.addEventListener('change', doConvert);
+
+        swapBtn.addEventListener('click', () => {
+            const a = fromEl.value;
+            fromEl.value = toEl.value;
+            toEl.value = a;
+            doConvert();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            valueEl.value = '';
+            output.style.display = 'none';
+            errorEl.style.display = 'none';
+        });
+
+        copyBtn.addEventListener('click', async () => {
+            if (output.style.display === 'none') return;
+            const text = valueOut.textContent || formulaEl.textContent || '';
+            try{
+                await navigator.clipboard.writeText(text);
+                copyBtn.textContent = 'Copied';
+                setTimeout(() => copyBtn.textContent = 'Copy', 1200);
+            }catch(e){
+                copyBtn.textContent = 'Copy (failed)';
+                setTimeout(() => copyBtn.textContent = 'Copy', 1200);
+            }
+        });
+
+        (function init(){
+            output.style.display = 'none';
+            errorEl.style.display = 'none';
+            valueEl.placeholder = 'e.g., 25';
+        })();
+    </script>
+</body>
+</html>
